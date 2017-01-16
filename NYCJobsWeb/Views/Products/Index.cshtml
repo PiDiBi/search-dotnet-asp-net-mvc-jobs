@@ -220,7 +220,7 @@
             //if (data.Results[0].Document.tags.length > 0)
             //    featuredListing = ' - Featured Job';
 
-            jobDetailsHTML += '<h6 class="title"><a href="/products/jobdetails?id=' + data.Results[i].Document.id + '">' + data.Results[i].Document.SkuDisplayName + '</a>&nbsp;' + featuredListing + '</h6>';
+            jobDetailsHTML += '<h6 class="title">' + data.Results[i].Document.SkuDisplayName + '&nbsp;' + featuredListing + '</h6>';
             jobDetailsHTML += '<span class="meta">' + data.Results[i].Document.ProductParentCategories + '</span>';
 
             jobDetailsHTML += '<p class="description"><b>Price:</b> ' + data.Results[i].Document.SkuPriceFormated;
@@ -230,10 +230,14 @@
             jobDetailsHTML += '</p>';
 
             var jobDesc = data.Results[i].Document.ProductDescription;
-            jobDesc = jobDesc.substring(0, jobDesc.substring(0, 500).lastIndexOf(' ') + 1);
-            if (data.Results[i].Highlights != null)
-                jobDesc = data.Results[i].Highlights.job_description
-            jobDetailsHTML += '<p class="description">' + jobDesc + '...&nbsp;&nbsp;&nbsp;<a href="/products/jobdetails?id=' + data.Results[i].Document.id + '" class="read-more">Read More</a></p>';
+            //jobDesc = jobDesc.substring(0, jobDesc.substring(0, 500).lastIndexOf(' ') + 1);
+            //if (data.Results[i].Highlights != null)
+            //    jobDesc = data.Results[i].Highlights.ProductDescription
+            jobDetailsHTML += '<p class="description">';
+            jobDetailsHTML += jobDesc;
+            //jobDetailsHTML += '...&nbsp;&nbsp;&nbsp;';
+            //jobDetailsHTML += '<a href="/products/productdetails?id=' + data.Results[i].Document.id + '" class="read-more">Read More</a>';
+            jobDetailsHTML += '</p>';
 
             jobDetailsHTML += '</div>';
             jobDetailsHTML += '</div>';

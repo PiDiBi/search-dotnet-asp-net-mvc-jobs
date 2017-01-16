@@ -124,7 +124,8 @@ namespace NYCJobsWeb
                 SuggestParameters sp = new SuggestParameters()
                 {
                     UseFuzzyMatching = fuzzy,
-                    Top = 8
+                    Top = 8,
+                    Filter = "SkuDontSell eq false"
                 };
 
                 return _indexClient.Documents.Suggest(searchText, "sg", sp);

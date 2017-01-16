@@ -190,10 +190,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Controllers\ProductsController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="ProductsSearch.cs" />
     <Compile Include="JobsSearch.cs" />
     <Compile Include="Models\Jobs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -212,6 +214,8 @@
     <Content Include="Views\Home\JobDetails.cshtml" />
     <Content Include="Scripts\jquery-3.1.1.slim.min.map" />
     <Content Include="Scripts\jquery-3.1.1.min.map" />
+    <Content Include="Views\Products\Index.cshtml" />
+    <Content Include="Views\Products\ProductDetails.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

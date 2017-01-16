@@ -1,0 +1,312 @@
+﻿<script type="text/javascript" src="http://ecn.dev.virtualearth.net/mapcontrol/mapcontrol.ashx?v=7.0"></script>
+<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.10.2.min.js"></script>
+<link rel="stylesheet" href="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="http://ajax.aspnetcdn.com/ajax/jquery.ui/1.11.4/jquery-ui.min.js"></script>
+
+<!-- Attach CSS for step through tutorial tool -->
+<script src="~/Scripts/bootstrap-tour-standalone.min.js"></script>
+<link href="~/Content/bootstrap-tour-standalone.min.css" rel="stylesheet" />
+
+<script>
+    $(function () {
+        $("#q").autocomplete({
+            source: "/products/suggest",
+            minLength: 2,
+            select: function (event, ui) {
+                Search();
+            }
+        });
+    });
+</script>
+
+<script type="text/javascript">
+    var businessTitleFacet, postingTypeFacet, salaryRangeFacet, sortType, currentPage, zipCode, maxDistance;
+    
+    var pinInfobox = null;
+    
+    $(function () {
+        $("#q").autocomplete({
+            source: "/products/suggest",
+            minLength: 2,
+            select: function (event, ui) {
+                Search();
+            }
+        });
+        // Load the initial data
+        currentPage = 1;
+        productParentCategoriesFacet = '';
+        priceRangeFacet ='';
+        skuColorFacet = '';
+        document.getElementById("q").focus();
+        sortType = 'productRating';
+    
+        Search();
+
+        // Execute search if user clicks enter
+        $("#q").keyup(function (event) {
+            if (event.keyCode == 13) {
+                Search();
+            }
+        });
+
+
+
+    });
+
+    function Search() {
+        $("#job_details_div").html("Loading...");
+        var q = $("#q").val();
+        // Get center of map to use to score the search results
+        $.post('/products/search',
+        {
+            q: q,
+            productParentCategoriesFacet: productParentCategoriesFacet,
+            priceRangeFacet: priceRangeFacet,
+            skuColorFacet: skuColorFacet,
+            sortType: sortType,            
+            currentPage: currentPage,        
+        },
+        function (data) {
+            UpdateProductParentCategoriesFacet(data.Facets.ProductParentCategories);            
+            UpdatePriceRangeFacets(data.Facets.SkuPrice);
+            UpdateSkuColorFacets(data.Facets.SkuColor);
+            
+            UpdatePagination(data.Count);            
+            UpdateFilterReset();
+
+            UpdateProductDetails(data);
+        });
+
+    }
+
+    function UpdateFilterReset() {
+        // This allows users to remove filters
+        var htmlString = '';
+        if ((productParentCategoriesFacet != '') || (skuColorFacet != '') || (priceRangeFacet |= '')) {
+            htmlString += '<b>Current Filters:</b><br>';
+            if (productParentCategoriesFacet != '')
+                htmlString += productParentCategoriesFacet + ' [<a href="javascript:void(0)" onclick="RemoveFacet(\'productParentCategoriesFacet\')">X</a>]<br>';
+            if (skuColorFacet != '')
+                htmlString += skuColorFacet + ' [<a href="javascript:void(0)" onclick="RemoveFacet(\'skuColorFacet\')">X</a>]<br>';
+            if (priceRangeFacet != '') {
+                var lowRange = parseInt(priceRangeFacet);
+                var highRange = lowRange + 99;
+                htmlString += '$' + lowRang + ' - $' + highRange + ' [<a href="javascript:void(0)" onclick="RemoveFacet(\'priceRangeFacet\')">X</a>]<br>';
+            }
+        }
+        $("#filterReset").html(htmlString);
+    }
+
+    function RemoveFacet(facet) {
+        // Remove a facet
+        if (facet == "productParentCategoriesFacet")
+            productParentCategoriesFacet = '';
+        if (facet == "priceRangeFacet")
+            priceRangeFacet = '';
+        if (facet == "skuColorFacet")
+            skuColorFacet = '';
+
+        Search();
+    }
+
+
+    function UpdatePagination(docCount) {
+        // Update the pagination
+        var totalPages = Math.round(docCount / 10);
+        // Set a max of 5 items and set the current page in middle of pages
+        var startPage = currentPage;
+        if ((startPage == 1) || (startPage == 2))
+            startPage = 1;
+        else
+            startPage -= 2;
+
+        var maxPage = startPage + 5;
+        if (totalPages < maxPage)
+            maxPage = totalPages + 1;
+        var backPage = parseInt(currentPage) - 1;
+        if (backPage < 1)
+            backPage = 1;
+        var forwardPage = parseInt(currentPage) + 1;
+
+        var htmlString = '<li><a href="javascript:void(0)" onclick="GoToPage(\'' + backPage + '\')" class="fa fa-angle-left"></a></li>';
+        for (var i = startPage; i < maxPage; i++) {
+            if (i == currentPage)
+                htmlString += '<li  class="active"><a href="#">' + i + '</a></li>';
+            else
+                htmlString += '<li><a href="javascript:void(0)" onclick="GoToPage(\'' + parseInt(i) + '\')">' + i + '</a></li>';
+        }
+
+        htmlString += '<li><a href="javascript:void(0)" onclick="GoToPage(\'' + forwardPage + '\')" class="fa fa-angle-right"></a></li>';
+        $("#pagination").html(htmlString);
+        $("#paginationFooter").html(htmlString);
+
+
+    }
+
+    function GoToPage(page) {
+        currentPage = page;
+        Search();
+    }
+    
+    function UpdateProductParentCategoriesFacet(data) {
+        var facetResultsHTML = '';
+        for (var i = 0; i < data.length; i++) {
+            facetResultsHTML += '<li><a href="javascript:void(0)" onclick="ChooseProductParentCategoriesFacet(\'' + data[i].Value + '\');">' + data[i].Value + ' (' + data[i].Count + ')</span></a></li>';
+        }
+
+        $("#productParentCategoriesFacet").html(facetResultsHTML);
+    }
+
+    function ChooseProductParentCategoriesFacet(facet) {
+        productParentCategoriesFacet = facet;
+        Search();
+    }
+
+    function UpdateSkuColorFacets(data) {
+        var facetResultsHTML = '';
+        for (var i = 0; i < data.length; i++) {
+            facetResultsHTML += '<li><a href="javascript:void(0)" onclick="ChooseSkuColorFacets(\'' + data[i].Value + '\');">' + data[i].Value + ' (' + data[i].Count + ')</span></a></li>';
+        }
+
+        $("#skuColorFacet").html(facetResultsHTML);
+    }
+
+    function ChooseSkuColorFacets(facet) {
+        skuColorFacet = facet;
+        Search();
+    }
+
+    function UpdatePriceRangeFacets(data) {
+        var facetResultsHTML = '';
+        for (var i = 0; i < data.length; i++) {
+            var lowRange = parseInt(data[i].Value);
+            var highRange = lowRange + 9;
+
+            facetResultsHTML += '<li><a href="javascript:void(0)" onclick="ChoosePriceRangeFacets(\'' + data[i].Value + '\');">' + lowRange + ' - ' + highRange + ' (' + data[i].Count + ')</span></a></li>';
+        }
+
+        $("#priceRangeFacet").html(facetResultsHTML);
+    }
+
+    function ChoosePriceRangeFacets(facet) {
+        priceRangeFacet = facet;
+        Search();
+    }
+
+    function setSortType() {
+        sortType = $("#cmbSortType").val();
+        Search();
+    }
+
+
+    function UpdateProductDetails(data) {
+        var jobDetailsHTML = '';
+        var imgCounter = 0;
+        var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+        $("#available-jobs-label").html('Available Products <small>(' + data.Count + " jobs)</small>");
+        $("#jobs-count").html(data.Count);
+
+        $("#available_jobs_subheader").html(data.Count + ' Products');
+
+        for (var i = 0; i < data.Results.length; i++) {
+
+            jobDetailsHTML += '<div class="jobs-item with-thumb">';
+            imgCounter++;
+            if (imgCounter == 10)
+                imgCounter = 0;
+            jobDetailsHTML += '<div class="thumb"><img src="' + data.Results[i].Document.ProductSize4Image + '" alt=""></div>';
+            jobDetailsHTML += '<div class="clearfix visible-xs"></div>';
+            
+            var featuredListing = '';
+            //if (data.Results[0].Document.tags.length > 0)
+            //    featuredListing = ' - Featured Job';
+
+            jobDetailsHTML += '<h6 class="title"><a href="/products/jobdetails?id=' + data.Results[i].Document.id + '">' + data.Results[i].Document.SkuDisplayName + '</a>&nbsp;' + featuredListing + '</h6>';
+            jobDetailsHTML += '<span class="meta">' + data.Results[i].Document.ProductParentCategories + '</span>';
+
+            jobDetailsHTML += '<p class="description"><b>Price:</b> ' + data.Results[i].Document.SkuPriceFormated;
+            if (data.Results[i].Document.SkuPrice != data.Results[i].Document.SkuPrice)
+                jobDetailsHTML += ' to $' + data.Results[i].Document.SkuPrice + 99;
+            //jobDetailsHTML += ' ' + data.Results[i].Document.salary_frequency + '</p>';            
+            jobDetailsHTML += '</p>';
+
+            var jobDesc = data.Results[i].Document.ProductDescription;
+            jobDesc = jobDesc.substring(0, jobDesc.substring(0, 500).lastIndexOf(' ') + 1);
+            if (data.Results[i].Highlights != null)
+                jobDesc = data.Results[i].Highlights.job_description
+            jobDetailsHTML += '<p class="description">' + jobDesc + '...&nbsp;&nbsp;&nbsp;<a href="/products/jobdetails?id=' + data.Results[i].Document.id + '" class="read-more">Read More</a></p>';
+
+            jobDetailsHTML += '</div>';
+            jobDetailsHTML += '</div>';
+
+        }
+
+        $("#job_details_div").html(jobDetailsHTML);
+    }
+
+</script>
+
+<div class="container">
+    <div class="row">
+        <div class="col-sm-4 page-sidebar">
+            <aside>
+                <div class="sidebar-container">
+                    <div class="widget sidebar-widget jobs-search-widget">
+                        <h5 class="widget-title" id="title">Search</h5>
+                        <div class="widget-content clearfix">
+                            <div id="remote">
+                                <input class="form-control walkthrough-1" type="text" id="q" placeholder="Search Products">
+                          
+                                <input type="submit" class="typeahead search-submit" value=" " onclick="Search();">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="widget sidebar-widget jobs-filter-widget">
+                        <h5 class="widget-title">Filter Results</h5>
+                        <p id="filterReset"></p>
+                        <div class="widget-content">
+                            <h6 id="productParentCategoriesFacetTitle">Categories</h6>
+                            <ul class="filter-list" id="productParentCategoriesFacet">
+                           </ul>
+
+                            <h6>Color</h6>
+                            <ul class="filter-list" id="skuColorFacet">
+                            </ul>
+
+                            <h6>Price Range</h6>
+                            <ul class="filter-list" id="priceRangeFacet">
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div> <!-- end .page-sidebar -->
+
+        <div class="col-sm-8 page-content">
+        
+            <h3><span class="jobs-count" id="jobs-count"></span> Available Products</h3>
+
+            <div class="clearfix">
+                <select class="form-control pull-left" id="cmbSortType" onchange="setSortType();">
+                    <option value="featured">Rating</option>
+                    <option value="salaryDesc">Price (High to Low)</option>
+                    <option value="salaryIncr">Price (Low to High)</option>
+                    @*<option value="mostRecent">Most Recently Added</option>*@
+                </select>
+
+                <ul id="pagination" class="pagination pull-right">
+                </ul>
+            </div>
+
+            <div id="job_details_div">
+            </div>
+
+            <div class="clearfix">
+                <ul id="paginationFooter" class="pagination pull-right">
+                </ul>
+            </div>
+        </div> <!-- end .page-content -->
+    </div> <!-- end .container -->
+</div> <!-- end .row -->
